@@ -698,7 +698,183 @@ $$('.video-thumbnail').forEach(thumb => {
 })();
 
 /* ============================================================
+   17. MOBILE-SPECIFIC ENHANCEMENTS
+   ============================================================ */
+(function initMobileEnhancements() {
+
+  /* --- Fix 100vh pada mobile browser (address bar) --- */
+  function setVhVariable() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+  setVhVariable();
+  window.addEventListener('resize', setVhVariable, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(setVhVariable, 200);
+  });
+
+  /* --- Hamburger icon animation (3 garis → X) --- */
+  const toggle = $('#nav-toggle');
+  const menu = $('#nav-menu');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      const isOpen = menu.classList.contains('open');
+      const spans = toggle.querySelectorAll('span');
+      if (isOpen) {
+        // X shape
+        if (spans[0]) spans[0].style.cssText = 'transform: rotate(45deg) translate(5px, 5px); background: #D4AF37;';
+        if (spans[1]) spans[1].style.cssText = 'opacity: 0; transform: scaleX(0);';
+        if (spans[2]) spans[2].style.cssText = 'transform: rotate(-45deg) translate(5px, -5px); background: #D4AF37;';
+      } else {
+        // Reset
+        spans.forEach(s => s.style.cssText = '');
+      }
+    });
+
+    // Reset spans when link clicked
+    $$('.nav-link', menu).forEach(link => {
+      link.addEventListener('click', () => {
+        toggle.querySelectorAll('span').forEach(s => s.style.cssText = '');
+      });
+    });
+  }
+
+  /* --- Prevent iOS double-tap zoom on buttons & links --- */
+  let lastTap = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('a')) {
+        e.preventDefault();
+        e.target.click && e.target.click();
+      }
+    }
+    lastTap = now;
+  }, { passive: false });
+
+  /* --- Prevent iOS form zoom (font-size < 16px triggers zoom) --- */
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    const style = document.createElement('style');
+    style.textContent = `
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /* --- Gallery touch swipe (horizontal filter scroll) --- */
+  const galleryFilter = $('#gallery-filter');
+  if (galleryFilter) {
+    let isDown = false;
+    let startX, scrollLeft;
+
+    galleryFilter.addEventListener('touchstart', e => {
+      isDown = true;
+      startX = e.touches[0].pageX - galleryFilter.offsetLeft;
+      scrollLeft = galleryFilter.scrollLeft;
+    }, { passive: true });
+
+    galleryFilter.addEventListener('touchmove', e => {
+      if (!isDown) return;
+      const x = e.touches[0].pageX - galleryFilter.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      galleryFilter.scrollLeft = scrollLeft - walk;
+    }, { passive: true });
+
+    galleryFilter.addEventListener('touchend', () => { isDown = false; });
+  }
+
+  /* --- Singers section: swipe left/right between cards on mobile --- */
+  const singersPackages = $('#singers-packages');
+  if (singersPackages && window.innerWidth <= 480) {
+    singersPackages.style.cssText = `
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      gap: 1rem;
+      padding: 0.5rem 0 1rem;
+    `;
+    singersPackages.style.setProperty('--webkit-scrollbar', 'none');
+
+    $$('.singer-card', singersPackages).forEach(card => {
+      card.style.cssText = `
+        flex: 0 0 85%;
+        scroll-snap-align: start;
+        min-width: 85%;
+      `;
+    });
+
+    // Add CSS for scrollbar hide
+    const style = document.createElement('style');
+    style.textContent = `#singers-packages::-webkit-scrollbar { display: none; }`;
+    document.head.appendChild(style);
+  }
+
+  /* --- Services: swipe on mobile --- */
+  const servicesGrid = $('#services-grid');
+  if (servicesGrid && window.innerWidth <= 480) {
+    let touchStartX = 0;
+    servicesGrid.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  }
+
+  /* --- Scroll navbar: on mobile show when scrolling UP, hide scrolling DOWN --- */
+  const navbar = $('#navbar');
+  if (navbar && window.innerWidth <= 640) {
+    let lastY = 0;
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          if (currentY > lastY && currentY > 100) {
+            navbar.style.transform = 'translateY(-100%)';
+          } else {
+            navbar.style.transform = 'translateY(0)';
+          }
+          lastY = currentY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+
+  /* --- Testimonial card: prevent accidental scroll-close --- */
+  const testimonialSlider = $('#testimonials-slider');
+  if (testimonialSlider) {
+    testimonialSlider.addEventListener('touchstart', e => {
+      e.stopPropagation();
+    }, { passive: true });
+  }
+
+  /* --- Fix hero height with CSS variable on mobile --- */
+  const heroEl = $('.hero');
+  if (heroEl) {
+    const style = document.createElement('style');
+    style.textContent = `.hero { min-height: calc(var(--vh, 1vh) * 100); }`;
+    document.head.appendChild(style);
+  }
+
+  /* --- Add active tap feedback on cards (mobile touch) --- */
+  const tapElements = $$('.service-card, .why-card, .singer-card, .highlight-item, .mc-service-card');
+  tapElements.forEach(el => {
+    el.addEventListener('touchstart', () => {
+      el.style.opacity = '0.85';
+    }, { passive: true });
+    el.addEventListener('touchend', () => {
+      setTimeout(() => { el.style.opacity = ''; }, 150);
+    }, { passive: true });
+  });
+
+})();
+
+/* ============================================================
    INIT LOG
    ============================================================ */
 console.log('%c✦ Ferry Koesoema – Professional MC & Koesoema Singers ✦', 'color: #D4AF37; font-size: 14px; font-weight: bold;');
 console.log('%cWebsite crafted by BenchCode Dev with ❤️', 'color: #7A5C45; font-size: 11px;');
+
