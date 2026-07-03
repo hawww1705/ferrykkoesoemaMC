@@ -1,0 +1,15 @@
+# Ferry Koesoema – MC Profesional & Koesoema Singers
+# robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://ferrykoesoema.com/sitemap.xml
+
+# Disallow admin or sensitive paths (if applicable in future)
+Disallow: /admin/
+Disallow: /private/
+
+# Crawl-delay for courtesy
+Crawl-delay: 10
